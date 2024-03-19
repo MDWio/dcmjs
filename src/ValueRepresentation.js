@@ -116,7 +116,7 @@ class ValueRepresentation {
         return tag;
     }
 
-    read(stream, length, syntax) {
+    read(stream, length, syntax, options = { customDictionary: null }) {
         if (this.fixed && this.maxLength) {
             if (!length) return this.defaultValue;
             if (this.maxLength != length)
@@ -129,7 +129,7 @@ class ValueRepresentation {
                         length
                 );
         }
-        return this.readBytes(stream, length, syntax);
+        return this.readBytes(stream, length, syntax, options);
     }
 
     readBytes(stream, length) {
@@ -918,7 +918,7 @@ class SequenceOfItems extends ValueRepresentation {
         this.noMultiple = true;
     }
 
-    readBytes(stream, sqlength, syntax) {
+    readBytes(stream, sqlength, syntax, options = { customDictionary: null }) {
         if (sqlength == 0x0) {
             return []; //contains no dataset
         } else {
@@ -1002,7 +1002,11 @@ class SequenceOfItems extends ValueRepresentation {
                         read += toRead;
                         if (undef) stream.increment(8);
 
-                        var items = DicomMessage._read(itemStream, syntax);
+                        var items = DicomMessage._read(
+                            itemStream,
+                            syntax,
+                            options
+                        );
                         elements.push(items);
                     }
                     if (!undefLength && read == sqlength) {
@@ -1228,7 +1232,7 @@ class ParsedUnknownValue extends BinaryRepresentation {
         this._isExplicit = true;
     }
 
-    read(stream, length, syntax) {
+    read(stream, length, syntax, options = { customDictionary: null }) {
         const arrayBuffer = this.readBytes(stream, length, syntax)[0];
         const streamFromBuffer = new ReadBufferStream(arrayBuffer, true);
         const vr = ValueRepresentation.createByTypeString(this.type);
@@ -1241,7 +1245,7 @@ class ParsedUnknownValue extends BinaryRepresentation {
                 values.push(vr.read(streamFromBuffer, vr.maxLength, syntax));
             }
         } else {
-            var val = vr.read(streamFromBuffer, length, syntax);
+            var val = vr.read(streamFromBuffer, length, syntax, options);
             if (!vr.isBinary() && singleVRs.indexOf(vr.type) == -1) {
                 values = val;
                 if (typeof val === "string") {

@@ -109,6 +109,7 @@ class DicomMessage {
         options = {
             ignoreErrors: false,
             untilTag: null,
+            customDictionary: null,
             includeUntilTagValue: false
         }
     ) {
@@ -192,6 +193,7 @@ class DicomMessage {
         options = {
             ignoreErrors: false,
             untilTag: null,
+            customDictionary: null,
             includeUntilTagValue: false,
             noCopy: false
         }
@@ -271,10 +273,11 @@ class DicomMessage {
         syntax,
         options = {
             untilTag: null,
+            customDictionary: null,
             includeUntilTagValue: false
         }
     ) {
-        const { untilTag, includeUntilTagValue } = options;
+        const { untilTag, customDictionary, includeUntilTagValue } = options;
         var implicit = syntax == IMPLICIT_LITTLE_ENDIAN ? true : false,
             isLittleEndian =
                 syntax == IMPLICIT_LITTLE_ENDIAN ||
@@ -295,10 +298,12 @@ class DicomMessage {
         var length = null,
             vr = null,
             vrType;
+        var elementData = customDictionary
+            ? customDictionary[tag.toString()]
+            : DicomMessage.lookupTag(tag);
 
         if (implicit) {
             length = stream.readUint32();
-            var elementData = DicomMessage.lookupTag(tag);
             if (elementData) {
                 vrType = elementData.vr;
             } else {
@@ -319,12 +324,8 @@ class DicomMessage {
         } else {
             vrType = stream.readVR();
 
-            if (
-                vrType === "UN" &&
-                DicomMessage.lookupTag(tag) &&
-                DicomMessage.lookupTag(tag).vr
-            ) {
-                vrType = DicomMessage.lookupTag(tag).vr;
+            if (vrType === "UN" && elementData && elementData.vr) {
+                vrType = elementData.vr;
 
                 vr = ValueRepresentation.parseUnknownVr(vrType);
             } else {

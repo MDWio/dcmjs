@@ -1128,6 +1128,35 @@ describe("test_un_vr", () => {
         expect(dataset.ExposureIndex).toEqual(expectedExposureIndex);
         expect(dataset.DeviationIndex).toEqual(expectedDeviationIndex);
     });
+
+    it("Tag with UN vr should be parsed according VR using custom dictionary", async () => {
+        const customDictionary = DicomMetaDictionary.dictionary;
+
+        customDictionary["(0409,1010)"] = {
+            tag: "(0409,1010)",
+            vr: "UI",
+            name: "04091010",
+            vm: "1-n",
+            version: "PrivateTag"
+        };
+
+        const url = "https://github.com/dcmjs-org/data/releases/download/unknown-VR/sample-dicom-with-un-vr.dcm";
+        const dcmPath = await getTestDataset(url, "sample-dicom-with-un-vr.dcm");
+
+        const file = await promisify(fs.readFile)(dcmPath);
+        const dicomData = dcmjs.data.DicomMessage.readFile(file.buffer, {
+            ignoreErrors: false,
+            untilTag: null,
+            includeUntilTagValue: false,
+            noCopy: false,
+            customDictionary,
+        });
+        const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(
+            dicomData.dict
+        );
+
+        expect(dataset['04091010']).toEqual('1.3.6.1.4.1.50525.1.2.2023530.141547.182.96194.2');
+    });
 });
 
 it.each([
